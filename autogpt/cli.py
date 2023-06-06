@@ -53,6 +53,10 @@ import click
     help="Specifies whether to suppress the output of latest news on startup.",
 )
 @click.option(
+    "--comp-loop",
+    is_flag=True,
+)
+@click.option(
     # TODO: this is a hidden option for now, necessary for integration testing.
     #   We should make this public once we're ready to roll out agent specific workspaces.
     "--workspace-directory",
@@ -81,6 +85,7 @@ def main(
     browser_name: str,
     allow_downloads: bool,
     skip_news: bool,
+    comp_loop: bool,
     workspace_directory: str,
     install_plugin_deps: bool,
 ) -> None:
@@ -91,8 +96,27 @@ def main(
     """
     # Put imports inside function to avoid importing everything when starting the CLI
     from autogpt.main import run_auto_gpt
+    from autogpt.main import run_auto_gpt_loop
 
-    if ctx.invoked_subcommand is None:
+    if comp_loop and ctx.invoked_subcommand is None:
+        run_auto_gpt_loop(
+            continuous,
+            continuous_limit,
+            ai_settings,
+            prompt_settings,
+            skip_reprompt,
+            speak,
+            debug,
+            gpt3only,
+            gpt4only,
+            "json_file",
+            browser_name,
+            allow_downloads,
+            skip_news,
+            workspace_directory,
+            install_plugin_deps,
+        )
+    elif ctx.invoked_subcommand is None:
         run_auto_gpt(
             continuous,
             continuous_limit,

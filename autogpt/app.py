@@ -125,7 +125,8 @@ def execute_command(
             " format."
         )
     except Exception as e:
-        return f"Error: {str(e)}"
+        # return f"Error: {str(e)}"
+        raise e
 
 
 @command(
