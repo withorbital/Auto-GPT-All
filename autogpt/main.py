@@ -11,6 +11,7 @@ from autogpt.config import Config, check_openai_api_key
 from autogpt.configurator import create_config
 from autogpt.logs import logger
 from autogpt.memory.vector import get_memory
+from autogpt.memory.vector.memory_item import MemoryItem
 from autogpt.plugins import scan_plugins
 from autogpt.prompts.prompt import DEFAULT_TRIGGERING_PROMPT, construct_main_ai_config
 from autogpt.utils import (
@@ -51,6 +52,7 @@ def run_auto_gpt_loop(
     continuous: bool,
     continuous_limit: int,
     ai_settings: str,
+    prompt_settings: str,
     skip_reprompt: bool,
     speak: bool,
     debug: bool,
@@ -72,19 +74,43 @@ def run_auto_gpt_loop(
     
     print("Companies length: ", len(companies))
 
+    goalsTemplate = """
+    ai_goals:
+     - company name is {company_name}
+     - find if they provide free lunch/food/snacks to employees
+     - you can get this information from careers website
+     - or you can get this information from glassdoor reviews
+     - or you can get this information from indeed reviews
+     - if you can find in any above sources that company provides free lunch/food/snacks to employees, then update false
+     - Find the description where you find the information
+     - send the company name, true/false, description, reference link to slack
+     - append the output to company_amen.tsv file with company_name,true/false,description,time,reference_link and new line at the end
+    ai_name: dataGPT
+    ai_role: Can read indeed, glassdoor and news articles to find if a company provides free food to its employees
+    """
+
     for company in companies:
         print("Running Auto-GPT for company: ", company)
         # Configure logging before we do anything else.
         logger.set_level(logging.DEBUG if debug else logging.INFO)
         logger.speak_mode = speak
 
+        goal = goalsTemplate.format(company_name=company)
+        
+        #write to ai_settings.yaml file
+        with open(f"ai_settings.yaml", "w") as f:
+            f.write(goal)
+
         cfg = Config()
         # TODO: fill in llm values here
         check_openai_api_key()
+
         create_config(
+            cfg,
             True,
-            12,
+            10,
             ai_settings,
+            prompt_settings,
             True,
             speak,
             debug,
@@ -95,6 +121,10 @@ def run_auto_gpt_loop(
             allow_downloads,
             skip_news,
         )
+
+        if cfg.continuous_mode:
+            for line in get_legal_warning().split("\n"):
+                logger.warn(markdown_to_ansi_style(line), "LEGAL:", Fore.RED)
 
         if not cfg.skip_news:
             motd, is_new_motd = get_latest_bulletin()
@@ -155,42 +185,27 @@ def run_auto_gpt_loop(
         # Create a CommandRegistry instance and scan default folder
         command_registry = CommandRegistry()
 
-        command_categories = [
-            "autogpt.commands.analyze_code",
-            "autogpt.commands.audio_text",
-            "autogpt.commands.execute_code",
-            "autogpt.commands.file_operations",
-            "autogpt.commands.git_operations",
-            "autogpt.commands.google_search",
-            "autogpt.commands.image_gen",
-            "autogpt.commands.improve_code",
-            "autogpt.commands.twitter",
-            "autogpt.commands.web_selenium",
-            "autogpt.commands.write_tests",
-            "autogpt.app",
-            "autogpt.commands.task_statuses",
-        ]
         logger.debug(
             f"The following command categories are disabled: {cfg.disabled_command_categories}"
         )
-        command_categories = [
-            x for x in command_categories if x not in cfg.disabled_command_categories
+        enabled_command_categories = [
+            x for x in COMMAND_CATEGORIES if x not in cfg.disabled_command_categories
         ]
 
-        logger.debug(f"The following command categories are enabled: {command_categories}")
+        logger.debug(
+            f"The following command categories are enabled: {enabled_command_categories}"
+        )
 
-        for command_category in command_categories:
+        for command_category in enabled_command_categories:
             command_registry.import_commands(command_category)
 
         ai_name = ""
         ai_config = construct_main_ai_config()
         ai_config.command_registry = command_registry
+        if ai_config.ai_name:
+            ai_name = ai_config.ai_name
         # print(prompt)
         # Initialize variables
-        full_message_history = [{
-            "role": "user",
-            "content": "company_name is " + company,
-        }]
         next_action_count = 0
 
         # add chat plugins capable of report to logger
@@ -203,6 +218,8 @@ def run_auto_gpt_loop(
         # Initialize memory and make sure it is empty.
         # this is particularly important for indexing and referencing pinecone memory
         memory = get_memory(cfg, init=True)
+        # memory.add(item=MemoryItem.from_text(text="company_name is" + company, source_type="agent_history", how_to_summarize="donot summarize this, just return the same text" ))
+        print("Memory length: ", memory.__len__())
         logger.typewriter_log(
             "Using memory of type:", Fore.GREEN, f"{memory.__class__.__name__}"
         )
@@ -214,7 +231,6 @@ def run_auto_gpt_loop(
         agent = Agent(
             ai_name=ai_name,
             memory=memory,
-            full_message_history=full_message_history,
             next_action_count=next_action_count,
             command_registry=command_registry,
             config=ai_config,
@@ -245,6 +261,7 @@ def run_auto_gpt(
     workspace_directory: str,
     install_plugin_deps: bool,
 ):
+    print("Running Auto-GPT")
     # Configure logging before we do anything else.
     logger.set_level(logging.DEBUG if debug else logging.INFO)
     logger.speak_mode = speak

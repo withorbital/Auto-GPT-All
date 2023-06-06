@@ -26,4 +26,5 @@ def task_complete(reason: str, config: Config) -> NoReturn:
             improve the code.
     """
     logger.info(title="Shutting down...\n", message=reason)
-    quit()
+    # quit()
+    raise NameError(reason)
