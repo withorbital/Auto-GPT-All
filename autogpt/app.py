@@ -151,7 +151,7 @@ def get_text_summary(url: str, question: str, config: Config) -> str:
 
 @command("get_hyperlinks", "Get hyperlinks", '"url": "<url>"')
 @validate_url
-def get_hyperlinks(url: str, config: Config) -> Union[str, List[str]]:
+def get_hyperlinks(url: str, config: Config, *args) -> Union[str, List[str]]:
     """Get all hyperlinks on a webpage
 
     Args:

@@ -2,7 +2,7 @@
 import logging
 import sys
 from pathlib import Path
-
+import os
 from colorama import Fore, Style
 
 from autogpt.agent import Agent
@@ -84,7 +84,7 @@ def run_auto_gpt_loop(
      - if you can find in any above sources that company provides free lunch/food/snacks to employees, then update false
      - Find the description where you find the information
      - send the company name, true/false, description, reference link to slack
-     - append the output to company_amen.tsv file with company_name,true/false,description,time,reference_link and new line at the end
+     - write the output to ouput.tsv file with company_name,true/false,description,reference_link
     ai_name: dataGPT
     ai_role: Can read indeed, glassdoor and news articles to find if a company provides free food to its employees
     """
@@ -97,6 +97,10 @@ def run_auto_gpt_loop(
 
         goal = goalsTemplate.format(company_name=company)
         
+        with open(f"{workspace_directory}/output.tsv", 'w') as f:
+            f.write("")
+            f.close()
+
         #write to ai_settings.yaml file
         with open(f"ai_settings.yaml", "w") as f:
             f.write(goal)
@@ -240,9 +244,18 @@ def run_auto_gpt_loop(
         )
         try:
             agent.start_interaction_loop()
-        except NameError:
+        except:
             print("NameError: Task Complete")
             pass
+
+        with open(f"{workspace_directory}/output.tsv", "w+") as f:
+            line = f.readline()
+            with open(f"{workspace_directory}/companies_lunch.tsv", "a") as f2:
+                f2.write(f"{company}\t{line}\n")
+                f2.close()
+            f.close()
+
+        os.remove(f"{workspace_directory}/output.tsv")
 
 def run_auto_gpt(
     continuous: bool,
