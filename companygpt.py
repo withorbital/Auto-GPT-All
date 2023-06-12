@@ -15,6 +15,7 @@ parser.add_argument("company_csv_path",type=str)
 parser.add_argument("output_path",type=str)
 
 def main(args):
+    print("Args:",args)
     promptTemplate = gsc_read_file(args.bucket,args.prompt_path)
     companies = parse_csv(gsc_read_file(args.bucket,args.company_csv_path))
     os.makedirs(workspace_directory, exist_ok=True)
