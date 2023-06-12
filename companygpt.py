@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 from autogpt.main import run_auto_gpt
 from google.cloud import storage
 
@@ -16,6 +17,7 @@ parser.add_argument("output_path",type=str)
 def main(args):
     promptTemplate = gsc_read_file(args.bucket,args.prompt_path)
     companies = parse_csv(gsc_read_file(args.bucket,args.company_csv_path))
+    os.makedirs(workspace_directory, exist_ok=True)
     with open(all_op_fp,"w") as f: f.write("")
 
     for company in list(zip(*companies))[0]:
