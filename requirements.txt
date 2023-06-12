@@ -62,3 +62,6 @@ vcrpy @ git+https://github.com/Significant-Gravitas/vcrpy.git@master
 pytest-recording
 pytest-xdist
 google-cloud-storage
+google-api-python-client 
+google-auth-httplib2 
+google-auth-oauthlib
