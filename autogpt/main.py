@@ -248,7 +248,7 @@ def run_auto_gpt_loop(
             print("NameError: Task Complete")
             pass
 
-        with open(f"{workspace_directory}/output.tsv", "w+") as f:
+        with open(f"{workspace_directory}/output.tsv", "r") as f:
             line = f.readline()
             with open(f"{workspace_directory}/companies_lunch.tsv", "a") as f2:
                 f2.write(f"{company}\t{line}\n")
