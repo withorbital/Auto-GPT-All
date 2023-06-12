@@ -23,7 +23,7 @@ parser.add_argument("output_col",type=str)
 parser.add_argument("output_size",type=str) 
 
 def main(args):
-    spreadsheetId = args.spreadsheetId
+    spreadsheetId = args.spreadsheet_id
     input_col = args.input_col
     input_start = args.input_start
     input_end = args.input_end
@@ -37,8 +37,6 @@ def main(args):
     print(result)
     companies = result["values"]
     print(f"{len(companies)} rows retrieved")
-    #skip first row (header)
-    companies = companies[1:]
 
     os.makedirs(workspace_directory, exist_ok=True)
     with open(all_op_fp,"w") as f: f.write("")
@@ -79,7 +77,7 @@ def main(args):
         with open(single_op_fp, "r") as fr, open(all_op_fp, "a") as fw:
                 line = fr.readline()
                 fw.write(f"{company}\t{line}\n")
-                data = line.split("\t")
+                data = line.strip().split("\t")
                 if len(data) > output_size:
                     update_spreadsheet_values(spreadsheetId, f"{output_col}{current_row}", "RAW", [data[:output_size]])
                 else:
