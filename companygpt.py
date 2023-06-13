@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError
 workspace_directory = './autogpt/auto_gpt_workspace'
 single_op_fp = workspace_directory+"/output.tsv"
 all_op_fp = workspace_directory+"/all_output.tsv"
+json_memory_fp = workspace_directory+"/auto-gpt-memory.json"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("spreadsheet_id",type=str)
@@ -49,6 +50,7 @@ def main(args):
         prompt=promptTemplate.format(company_name=company)
         with open("ai_settings.yaml","w") as f: f.write(prompt)
         with open(single_op_fp,"w") as f: f.write("")
+        if os.path.exists(json_memory_fp): os.remove(json_memory_fp)
 
         try:
             run_auto_gpt(
