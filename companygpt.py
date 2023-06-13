@@ -46,6 +46,7 @@ def main(args):
     for _company in companies:
         company = _company[0]
         print("Running Auto-GPT for company: ", company)
+        update_spreadsheet_values(spreadsheetId, f"{output_col}{current_row}", "RAW", [["Running..."]])
 
         prompt=promptTemplate.format(company_name=company)
         with open("ai_settings.yaml","w") as f: f.write(prompt)
