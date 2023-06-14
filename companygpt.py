@@ -6,6 +6,7 @@ from google.cloud import storage
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import json 
 
 workspace_directory = './autogpt/auto_gpt_workspace'
 single_op_fp = workspace_directory+"/output.tsv"
@@ -22,8 +23,11 @@ parser.add_argument("input_start",type=str)
 parser.add_argument("input_end",type=str)
 parser.add_argument("output_col",type=str)
 parser.add_argument("output_size",type=str) 
+parser.add_argument("run_id",type=str)
 
 def main(args):
+    run_id = args.run_id
+    bucket = args.bucket
     spreadsheetId = args.spreadsheet_id
     input_col = args.input_col
     input_start = args.input_start
@@ -32,7 +36,7 @@ def main(args):
     output_size = int(args.output_size)
 
     promptTemplate = gsc_read_file(args.bucket,args.prompt_path)
-    # companies = parse_csv(gsc_read_file(args.bucket,args.company_csv_path))
+    run_state = get_state(bucket,run_id)
     
     result = get_spreadheet_values(spreadsheetId, input_col, input_start, input_end)
     print(result)
@@ -42,7 +46,8 @@ def main(args):
     os.makedirs(workspace_directory, exist_ok=True)
     with open(all_op_fp,"w") as f: f.write("")
 
-    current_row = int(input_start)
+    current_row = run_state["last_run_index"]+1 if run_state["last_run_index"] else int(input_start)
+
     for _company in companies:
         company = _company[0]
         print("Running Auto-GPT for company: ", company)
@@ -86,10 +91,28 @@ def main(args):
                 else:
                     update_spreadsheet_values(spreadsheetId, f"{output_col}{current_row}", "RAW", [data])
 
+        run_state["last_run_index"] = current_row
+        update_state(bucket,run_id,run_state)
         current_row += 1
 
     with open(all_op_fp, "r") as f:
         gsc_write_file(args.bucket,args.output_path,f.read())
+
+
+def get_state(bucket,run_id):
+    try:
+        data = gsc_read_file(bucket,f"run_state/{run_id}")
+        return json.loads(data)
+    except Exception as e:
+        print("GCS error",e)
+    return {"last_run_index":None}
+
+def update_state(bucket,run_id,state):
+    try:
+        gsc_write_file(bucket,f"run_state/{run_id}", json.dumps(state))
+    except Exception as e:
+        print("GCS error",e)
+
 
 
 # --------- helper funcs ---------
