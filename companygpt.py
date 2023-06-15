@@ -37,6 +37,9 @@ def main(args):
 
     promptTemplate = gsc_read_file(args.bucket,args.prompt_path)
     run_state = get_state(bucket,run_id)
+    print("Previous State", run_state)
+    if run_state["last_run_index"]: 
+        input_start = str(run_state["last_run_index"]+1)
     
     result = get_spreadheet_values(spreadsheetId, input_col, input_start, input_end)
     print(result)
@@ -46,7 +49,7 @@ def main(args):
     os.makedirs(workspace_directory, exist_ok=True)
     with open(all_op_fp,"w") as f: f.write("")
 
-    current_row = run_state["last_run_index"]+1 if run_state["last_run_index"] else int(input_start)
+    current_row = int(input_start)
 
     for _company in companies:
         company = _company[0]
