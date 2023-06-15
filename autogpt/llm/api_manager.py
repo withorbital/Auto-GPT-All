@@ -48,23 +48,38 @@ class ApiManager(metaclass=Singleton):
         cfg = Config()
         if temperature is None:
             temperature = cfg.temperature
-        if deployment_id is not None:
-            response = openai.ChatCompletion.create(
-                deployment_id=deployment_id,
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                api_key=cfg.openai_api_key,
-            )
-        else:
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                api_key=cfg.openai_api_key,
-            )
+        
+        request_timeout = (12,3*60)
+        error_count = 0
+        max_error = 3
+        while True:
+            try:
+                if deployment_id is not None:
+                    response = openai.ChatCompletion.create(
+                        deployment_id=deployment_id,
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        api_key=cfg.openai_api_key,
+                        request_timeout=request_timeout,
+                    )
+                    break
+                else:
+                    response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        api_key=cfg.openai_api_key,
+                        request_timeout=request_timeout,
+                    )
+                    break
+            except openai.error.Timeout as e:
+                error_count +=1
+                if error_count >= max_error: raise e
+                else: print("SUPRESSED API ERROR:",e)
+
         if not hasattr(response, "error"):
             logger.debug(f"Response: {response}")
             prompt_tokens = response.usage.prompt_tokens
